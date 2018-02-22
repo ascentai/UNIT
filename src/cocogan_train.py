@@ -24,6 +24,10 @@ parser.add_option('--resume', type=int, help="resume training?", default=0)
 parser.add_option('--config', type=str, help="net configuration")
 parser.add_option('--log', type=str, help="log path")
 
+import os
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
+
 MAX_EPOCHS = 100000
 
 def main(argv):
