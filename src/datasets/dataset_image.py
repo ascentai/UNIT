@@ -26,7 +26,7 @@ class dataset_image(data.Dataset):
 
   def __getitem__(self, index):
     crop_img = self._load_one_image(self.images[index])
-    raw_data = crop_img.transpose((2, 0, 1))  # convert to HWC
+    raw_data = crop_img.transpose((2, 0, 1))  # convert to CWH
     data = ((torch.FloatTensor(raw_data)/255.0)-0.5)*2
     return data
 
