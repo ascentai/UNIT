@@ -5,15 +5,18 @@ Copyright (C) 2017 NVIDIA Corporation.  All rights reserved.
 Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 """
 from __future__ import print_function
-from common import get_data_loader, prepare_snapshot_and_image_folder, write_html, write_loss
+from common import get_data_loader, prepare_snapshot_and_image_folder, write_html, write_loss_X
 from tools import *
 from trainers import *
 from datasets import *
 import sys
 import torchvision
 from itertools import izip
-import tensorboard
-from tensorboard import summary
+import torch.backends.cudnn as cudnn
+
+
+from tensorboardX import SummaryWriter
+
 from optparse import OptionParser
 parser = OptionParser()
 parser.add_option('--gpu', type=int, help="gpu id", default=0)
@@ -47,9 +50,12 @@ def main(argv):
     iterations = trainer.resume(config.snapshot_prefix)
   trainer.cuda(opts.gpu)
 
+  #trainer = torch.nn.DataParallel(trainer, device_ids=range(torch.cuda.device_count())) # replicates the model in all the GPUs. The batch size should be a multiple of the number of GPUs. This doesn't work since it complains about dis_uptate is not member of DataParallel.
+  cudnn.benchmark = True 
+
   ######################################################################################################################
   # Setup logger and repare image outputs
-  train_writer = tensorboard.FileWriter("%s/%s" % (opts.log,os.path.splitext(os.path.basename(opts.config))[0]))
+  train_writer = SummaryWriter("%s/%s" % (opts.log,os.path.splitext(os.path.basename(opts.config))[0]))
   image_directory, snapshot_directory = prepare_snapshot_and_image_folder(config.snapshot_prefix, iterations, config.image_save_iterations)
 
   for ep in range(0, MAX_EPOCHS):
@@ -66,7 +72,7 @@ def main(argv):
 
       # Dump training stats in log file
       if (iterations+1) % config.display == 0:
-        write_loss(iterations, max_iterations, trainer, train_writer)
+        write_loss_X(iterations, max_iterations, trainer, train_writer)
 
       if (iterations+1) % config.image_save_iterations == 0:
         img_filename = '%s/gen_%08d.jpg' % (image_directory, iterations + 1)
