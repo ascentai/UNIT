@@ -61,10 +61,13 @@ class COCOGANTrainer(nn.Module):
     enc_aba_loss = self._compute_kl(shared_aba)
     ll_loss_a = self.ll_loss_criterion_a(x_aa, images_a)
     ll_loss_b = self.ll_loss_criterion_b(x_bb, images_b)
+    ll_loss_ab = self.ll_loss_criterion_a(x_ab,images_a) # we want the translated image to be close to the source one.
+    ll_loss_ba = self.ll_loss_criterion_b(x_ba,images_b) # we want the translated image to be close to the source one.
     ll_loss_aba = self.ll_loss_criterion_a(x_aba, images_a)
     ll_loss_bab = self.ll_loss_criterion_b(x_bab, images_b)
     total_loss = hyperparameters['gan_w'] * (ad_loss_a + ad_loss_b) + \
                  hyperparameters['ll_direct_link_w'] * (ll_loss_a + ll_loss_b) + \
+                 hyperparameters['ll_translate_link_w'] * (ll_loss_ab + ll_loss_ba) + \
                  hyperparameters['ll_cycle_link_w'] * (ll_loss_aba + ll_loss_bab) + \
                  hyperparameters['kl_direct_link_w'] * (enc_loss + enc_loss) + \
                  hyperparameters['kl_cycle_link_w'] * (enc_bab_loss + enc_aba_loss)
@@ -77,6 +80,8 @@ class COCOGANTrainer(nn.Module):
     self.gen_ad_loss_b = ad_loss_b.data.cpu().numpy()[0]
     self.gen_ll_loss_a = ll_loss_a.data.cpu().numpy()[0]
     self.gen_ll_loss_b = ll_loss_b.data.cpu().numpy()[0]
+    self.gen_ll_loss_ab = ll_loss_ab.data.cpu().numpy()[0]
+    self.gen_ll_loss_ba = ll_loss_ba.data.cpu().numpy()[0]
     self.gen_ll_loss_aba = ll_loss_aba.data.cpu().numpy()[0]
     self.gen_ll_loss_bab = ll_loss_bab.data.cpu().numpy()[0]
     self.gen_total_loss = total_loss.data.cpu().numpy()[0]
