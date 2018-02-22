@@ -50,6 +50,6 @@ train:
       crop_image_height: 480 # crop image size
       crop_image_width: 640  # crop image size
       class_name: dataset_image
-      root: /cosmo/datasets/cityscape_1024x512/
+      root: ../datasets/cityscape/ #/cosmo/datasets/cityscape_1024x512/
       folder: ./
       list_name: list_leftImg8bit.txt
