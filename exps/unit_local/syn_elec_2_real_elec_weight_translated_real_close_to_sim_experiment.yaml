@@ -1,0 +1,55 @@
+# (from src folder) python cocogan_train.py --config ../exps/unit_local/syn_elec_2_real_elec_weight_translated_experiment.yaml --log ../logs
+train:
+  snapshot_save_iterations: 1000 # How often do you want to save trained models
+  image_save_iterations: 100 # How often do you want to save output images during training
+  image_display_iterations: 100
+  display: 1 # How often do you want to log the training stats
+  snapshot_prefix: ../outputs/unit/elecparts/weight_translated_real_close_to_sim/ # Where do you want to save the outputs
+  hyperparameters:
+    trainer: COCOGANTrainer
+    lr: 0.0001             # learning rate
+    ll_direct_link_w: 100  # weight on the self L1 reconstruction loss
+    ll_translate_link_w: 50 # weight on when comparing one image with its translated one
+    kl_direct_link_w: 0.1 # weight on VAE encoding loss
+    ll_cycle_link_w: 100   # weight on the cycle L1 reconstruction loss
+    kl_cycle_link_w: 0.1  # weight on the cycle L1 reconstruction loss
+    gan_w: 10              # weight on the adversarial loss
+    batch_size: 2          # image batch size per domain
+    max_iterations: 500000 # maximum number of training epochs
+    gen:
+      name: COCOResGen2
+      ch: 64               # base channel number per layer
+      input_dim_a: 3
+      input_dim_b: 3
+      n_enc_front_blk: 3
+      n_enc_res_blk: 3
+      n_enc_shared_blk: 1
+      n_gen_shared_blk: 1
+      n_gen_res_blk: 3
+      n_gen_front_blk: 3
+      res_dropout_ratio: 0.5
+    dis:
+      name: COCOMsDis
+      ch: 64
+      input_dim_a: 3
+      input_dim_b: 3
+      n_layer: 4
+  datasets:
+    train_a: # Domain 1 dataset
+      channels: 3       # image channel number
+      scale: 0.5       # scaling factor for scaling image before processing
+      crop_image_height: 384 # crop image size
+      crop_image_width: 512  # crop image size
+      class_name: dataset_image        # dataset class name
+      root: /nas/datashare/datasets/elecparts/4/for_generative/      # dataset folder location
+      folder: ./synthetic/
+      list_name: train_synthetic.txt  # image list
+    train_b: # Domain 2 dataset
+      channels: 3       # image channel number
+      scale: 0.125        # scaling factor for scaling image before processing
+      crop_image_height: 384 # crop image size
+      crop_image_width: 512  # crop image size
+      class_name: dataset_image
+      root: /nas/datashare/datasets/elecparts/4/for_generative/
+      folder: ./real_colse_to_sim/
+      list_name: train_real_close_to_sim_list.txt
