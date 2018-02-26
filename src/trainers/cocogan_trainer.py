@@ -42,8 +42,14 @@ class COCOGANTrainer(nn.Module):
   def gen_update(self, images_a, images_b, hyperparameters):
     self.gen.zero_grad()
     x_aa, x_ba, x_ab, x_bb, shared = self.gen(images_a, images_b)
-    x_bab, shared_bab = self.gen.forward_a2b(x_ba)
-    x_aba, shared_aba = self.gen.forward_b2a(x_ab)
+    if hyperparameters.has_key('do_noisy_translations'):
+      x_ba_noisy = x_ba + torch.randn(imgr_t.shape)*0.1
+      x_ab_noisy = x_ab + torch.randn(imgr_t.shape)*0.1
+      x_bab, shared_bab = self.gen.forward_a2b(x_ba_noisy)
+      x_aba, shared_aba = self.gen.forward_b2a(x_ab_noisy)
+    else:
+      x_bab, shared_bab = self.gen.forward_a2b(x_ba)
+      x_aba, shared_aba = self.gen.forward_b2a(x_ab)
     outs_a, outs_b = self.dis(x_ba,x_ab)
     for it, (out_a, out_b) in enumerate(itertools.izip(outs_a, outs_b)):
       outputs_a = nn.functional.sigmoid(out_a)
@@ -61,13 +67,13 @@ class COCOGANTrainer(nn.Module):
     enc_aba_loss = self._compute_kl(shared_aba)
     ll_loss_a = self.ll_loss_criterion_a(x_aa, images_a)
     ll_loss_b = self.ll_loss_criterion_b(x_bb, images_b)
-    ll_loss_ab = self.ll_loss_criterion_a(x_ab,images_a) # we want the translated image to be close to the source one.
-    ll_loss_ba = self.ll_loss_criterion_b(x_ba,images_b) # we want the translated image to be close to the source one.
+    #ll_loss_ab = self.ll_loss_criterion_a(x_ab,images_a) # we want the translated image to be close to the source one.
+    #ll_loss_ba = self.ll_loss_criterion_b(x_ba,images_b) # we want the translated image to be close to the source one.
     ll_loss_aba = self.ll_loss_criterion_a(x_aba, images_a)
     ll_loss_bab = self.ll_loss_criterion_b(x_bab, images_b)
     total_loss = hyperparameters['gan_w'] * (ad_loss_a + ad_loss_b) + \
                  hyperparameters['ll_direct_link_w'] * (ll_loss_a + ll_loss_b) + \
-                 hyperparameters['ll_translate_link_w'] * (ll_loss_ab + ll_loss_ba) + \
+                 #hyperparameters['ll_translate_link_w'] * (ll_loss_ab + ll_loss_ba) + \
                  hyperparameters['ll_cycle_link_w'] * (ll_loss_aba + ll_loss_bab) + \
                  hyperparameters['kl_direct_link_w'] * (enc_loss + enc_loss) + \
                  hyperparameters['kl_cycle_link_w'] * (enc_bab_loss + enc_aba_loss)
@@ -80,12 +86,16 @@ class COCOGANTrainer(nn.Module):
     self.gen_ad_loss_b = ad_loss_b.data.cpu().numpy()[0]
     self.gen_ll_loss_a = ll_loss_a.data.cpu().numpy()[0]
     self.gen_ll_loss_b = ll_loss_b.data.cpu().numpy()[0]
-    self.gen_ll_loss_ab = ll_loss_ab.data.cpu().numpy()[0]
-    self.gen_ll_loss_ba = ll_loss_ba.data.cpu().numpy()[0]
+    #self.gen_ll_loss_ab = ll_loss_ab.data.cpu().numpy()[0]
+    #self.gen_ll_loss_ba = ll_loss_ba.data.cpu().numpy()[0]
     self.gen_ll_loss_aba = ll_loss_aba.data.cpu().numpy()[0]
     self.gen_ll_loss_bab = ll_loss_bab.data.cpu().numpy()[0]
     self.gen_total_loss = total_loss.data.cpu().numpy()[0]
-    return (x_aa, x_ba, x_ab, x_bb, x_aba, x_bab)
+    if hyperparameters.has_key('do_noisy_translations'):
+      return (x_aa, x_ba, x_ab, x_bb, x_aba, x_bab, x_ab_noisy, x_ba_noisy)
+    else:
+      return (x_aa, x_ba, x_ab, x_bb, x_aba, x_bab)
+
 
   def dis_update(self, images_a, images_b, hyperparameters):
     self.dis.zero_grad()
@@ -135,7 +145,13 @@ class COCOGANTrainer(nn.Module):
     x_bb = self.normalize_image(network_outputs[3])
     x_aba = self.normalize_image(network_outputs[4])
     x_bab = self.normalize_image(network_outputs[5])
-    return torch.cat((images_a[0:1, ::], x_aa[0:1, ::], x_ab[0:1, ::], x_aba[0:1, ::],
+    if len(network_outputs) == 8:
+      x_ab_noisy = self.normalize_normalize(network_outputs[6])
+      x_ba_noisy = self.normalize_normalize(network_outputs[7])
+      return torch.cat((images_a[0:1, ::], x_aa[0:1, ::], x_ab[0:1, ::], x_ab_noisy[0:1, ::] ,x_aba[0:1, ::],
+                      images_b[0:1, ::], x_bb[0:1, ::], x_ba[0:1, ::], x_ba_noisy[0:1, ::] ,x_bab[0:1, ::]), 3)
+    else:
+      return torch.cat((images_a[0:1, ::], x_aa[0:1, ::], x_ab[0:1, ::], x_aba[0:1, ::],
                       images_b[0:1, ::], x_bb[0:1, ::], x_ba[0:1, ::], x_bab[0:1, ::]), 3)
 
   def resume(self, snapshot_prefix):
