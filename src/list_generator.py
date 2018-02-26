@@ -10,7 +10,7 @@ parser.add_argument('-r', help='rate of images for training',dest='r',          
 args = parser.parse_args()
 
 ll = glob.glob(os.path.join(args.images_folder,'*'))
-ll = [x.split('/')[1] for x in ll] # keep only the name of the image
+ll = [x.split('/')[-1] for x in ll] # keep only the name of the image
 np.random.shuffle(ll)
 separation_index = int(len(ll)*args.r)
 ll_train = ll[:separation_index]
