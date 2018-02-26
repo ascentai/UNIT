@@ -24,10 +24,7 @@ parser.add_option('--resume', type=int, help="resume training?", default=0)
 parser.add_option('--config', type=str, help="net configuration")
 parser.add_option('--log', type=str, help="log path")
 
-import os
-os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
-#torch.cuda.set_device(id) # This could maybe substitute the above snippet.
+
 
 MAX_EPOCHS = 100000
 
@@ -49,6 +46,10 @@ def main(argv):
   exec(cmd,globals(),local_dict)
   trainer = local_dict['trainer']
 
+  # set the gpu
+  torch.cuda.set_device(opts.gpu) 
+
+  
   # Check if resume training
   iterations = 0
   if opts.resume == 1:
@@ -56,7 +57,8 @@ def main(argv):
   trainer.cuda(opts.gpu)
 
   #trainer = torch.nn.DataParallel(trainer, device_ids=range(torch.cuda.device_count())) # replicates the model in all the GPUs. The batch size should be a multiple of the number of GPUs. This doesn't work since it complains about dis_uptate is not member of DataParallel.
-  cudnn.benchmark = True 
+  cudnn.benchmark = True
+
 
   ######################################################################################################################
   # Setup logger and repare image outputs
@@ -67,8 +69,8 @@ def main(argv):
     for it, (images_a, images_b) in enumerate(izip(train_loader_a,train_loader_b)):
       if images_a.size(0) != batch_size or images_b.size(0) != batch_size:
         continue
-      images_a = Variable(images_a.cuda(opts.gpu))
-      images_b = Variable(images_b.cuda(opts.gpu))
+      images_a = Variable(images_a.cuda())
+      images_b = Variable(images_b.cuda())
 
       # Main training code
       trainer.dis_update(images_a, images_b, config.hyperparameters)
